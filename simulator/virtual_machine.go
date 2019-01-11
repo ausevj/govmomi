@@ -149,8 +149,8 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) {
 	}
 
 	apply := []struct {
-		src string
-		dst *string
+		src interface{}
+		dst interface{}
 	}{
 		{spec.AlternateGuestName, &vm.Config.AlternateGuestName},
 		{spec.Annotation, &vm.Config.Annotation},
@@ -176,18 +176,6 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) {
 		{spec.Files.SnapshotDirectory, &vm.Config.Files.SnapshotDirectory},
 		{spec.Files.SuspendDirectory, &vm.Config.Files.SuspendDirectory},
 		{spec.Files.LogDirectory, &vm.Config.Files.LogDirectory},
-	}
-
-	for _, f := range apply {
-		if f.src != "" {
-			*f.dst = f.src
-		}
-	}
-
-	applyb := []struct {
-		src *bool
-		dst **bool
-	}{
 		{spec.NestedHVEnabled, &vm.Config.NestedHVEnabled},
 		{spec.CpuHotAddEnabled, &vm.Config.CpuHotAddEnabled},
 		{spec.CpuHotRemoveEnabled, &vm.Config.CpuHotRemoveEnabled},
@@ -198,74 +186,27 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) {
 		{spec.NpivTemporaryDisabled, &vm.Config.NpivTemporaryDisabled},
 		{spec.NpivOnNonRdmDisks, &vm.Config.NpivOnNonRdmDisks},
 		{spec.ChangeTrackingEnabled, &vm.Config.ChangeTrackingEnabled},
+		{*spec.Flags, &vm.Config.Flags},
+		{spec.LatencySensitivity, &vm.Config.LatencySensitivity},
+		{spec.ManagedBy, &vm.Config.ManagedBy},
+		{spec.BootOptions, &vm.Config.BootOptions},
+		{spec.RepConfig, &vm.Config.RepConfig},
+		{spec.Tools, &vm.Config.Tools},
+		{spec.ConsolePreferences, &vm.Config.ConsolePreferences},
+		{spec.CpuAffinity, &vm.Config.CpuAffinity},
+		{spec.CpuAllocation, &vm.Config.CpuAllocation},
+		{spec.MemoryAffinity, &vm.Config.MemoryAffinity},
+		{spec.MemoryAllocation, &vm.Config.MemoryAllocation},
+		{spec.LatencySensitivity, &vm.Config.LatencySensitivity},
+		{spec.NumCoresPerSocket, &vm.Config.Hardware.NumCoresPerSocket},
+		{spec.NumCPUs, &vm.Config.Hardware.NumCPU},
+		{spec.NumCPUs, &vm.Summary.Config.NumCpu},
+		{int32(spec.MemoryMB), &vm.Config.Hardware.MemoryMB},
+		{int32(spec.MemoryMB), &vm.Summary.Config.MemorySizeMB},
 	}
 
-	for _, f := range applyb {
-		if f.src != nil {
-			*f.dst = f.src
-		}
-	}
-
-	if spec.Flags != nil {
-		vm.Config.Flags = *spec.Flags
-	}
-
-	if spec.LatencySensitivity != nil {
-		vm.Config.LatencySensitivity = spec.LatencySensitivity
-	}
-
-	if spec.ManagedBy != nil {
-		vm.Config.ManagedBy = spec.ManagedBy
-	}
-
-	if spec.BootOptions != nil {
-		vm.Config.BootOptions = spec.BootOptions
-	}
-
-	if spec.RepConfig != nil {
-		vm.Config.RepConfig = spec.RepConfig
-	}
-
-	if spec.Tools != nil {
-		vm.Config.Tools = spec.Tools
-	}
-
-	if spec.ConsolePreferences != nil {
-		vm.Config.ConsolePreferences = spec.ConsolePreferences
-	}
-
-	if spec.CpuAffinity != nil {
-		vm.Config.CpuAffinity = spec.CpuAffinity
-	}
-
-	if spec.CpuAllocation != nil {
-		vm.Config.CpuAllocation = spec.CpuAllocation
-	}
-
-	if spec.MemoryAffinity != nil {
-		vm.Config.MemoryAffinity = spec.MemoryAffinity
-	}
-
-	if spec.MemoryAllocation != nil {
-		vm.Config.MemoryAllocation = spec.MemoryAllocation
-	}
-
-	if spec.LatencySensitivity != nil {
-		vm.Config.LatencySensitivity = spec.LatencySensitivity
-	}
-
-	if spec.MemoryMB != 0 {
-		vm.Config.Hardware.MemoryMB = int32(spec.MemoryMB)
-		vm.Summary.Config.MemorySizeMB = vm.Config.Hardware.MemoryMB
-	}
-
-	if spec.NumCPUs != 0 {
-		vm.Config.Hardware.NumCPU = spec.NumCPUs
-		vm.Summary.Config.NumCpu = vm.Config.Hardware.NumCPU
-	}
-
-	if spec.NumCoresPerSocket != 0 {
-		vm.Config.Hardware.NumCoresPerSocket = spec.NumCoresPerSocket
+	for _, f := range apply {
+		assignNonZeroValue(f.dst, f.src)
 	}
 
 	var changes []types.PropertyChange

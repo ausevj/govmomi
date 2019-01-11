@@ -17,10 +17,51 @@ limitations under the License.
 package simulator
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 )
+
+// Assigns b to a (types must match for assignement) if b is non zero-value for its type.
+// If types are struct - recurses through fields and sets non zero-value b fields to a.
+func assignNonZeroValue(a, b interface{}) error {
+	va := reflect.ValueOf(a)
+	vb := reflect.ValueOf(b)
+
+	if va.Kind() != reflect.Ptr {
+		return fmt.Errorf("a type must be Ptr")
+	}
+
+	va = reflect.Indirect(va)
+	// Types must be equal for a to be set to b
+	if va.Type() != vb.Type() {
+		return fmt.Errorf("a type: %v should be equal b type: %v", va.Type(), vb.Type())
+	}
+
+	assignNonZeroValueRecursive(va, vb)
+	return nil
+}
+
+func assignNonZeroValueRecursive(a, b reflect.Value) {
+	switch b.Kind() {
+	case reflect.Struct:
+		for i := 0; i < b.NumField(); i++ {
+			assignNonZeroValueRecursive(a.Field(i), b.Field(i))
+		}
+	default:
+		// Check if b is zero-value of its underlying type
+		bi := b.Interface()
+		isZero := reflect.DeepEqual(bi, reflect.Zero(reflect.TypeOf(bi)).Interface())
+
+		// Only assign if b is not zero-value
+		if !isZero && a.CanSet() {
+			a.Set(b)
+		}
+	}
+}
 
 func SetCustomValue(ctx *Context, req *types.SetCustomValue) soap.HasFault {
 	ctx.Caller = &req.This
