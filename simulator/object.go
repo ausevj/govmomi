@@ -25,40 +25,52 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// Assigns b to a (types must match for assignement) if b is non zero-value for its type.
-// If types are struct - recurses through fields and sets non zero-value b fields to a.
-func assignNonZeroValue(a, b interface{}) error {
-	va := reflect.ValueOf(a)
-	vb := reflect.ValueOf(b)
-
-	if va.Kind() != reflect.Ptr {
-		return fmt.Errorf("a type must be Ptr")
+// Assigns src to dst (types must match for assignement) if src is non zero-value for its type.
+// If types are struct - recurses through fields and sets non zero-value src fields to dst.
+func assignNonZeroValue(dst, src interface{}) error {
+	if src == nil {
+		return nil
 	}
 
-	va = reflect.Indirect(va)
+	vdst := reflect.ValueOf(dst)
+	vsrc := reflect.ValueOf(src)
+
+	if vdst.Kind() != reflect.Ptr {
+		return fmt.Errorf("dst type must be Ptr")
+	}
+
+	vdst = reflect.Indirect(vdst)
+	fmt.Printf("dst: %v - %v - %v\n", reflect.TypeOf(dst), dst, vdst)
+	fmt.Printf("src: %v - %v - %v\n", reflect.TypeOf(src), src, vsrc)
 	// Types must be equal for a to be set to b
-	if va.Type() != vb.Type() {
-		return fmt.Errorf("a type: %v should be equal b type: %v", va.Type(), vb.Type())
+	if vdst.Type() != vsrc.Type() {
+		return fmt.Errorf("dst type: %v should be equal src type: %v", vdst.Type(), vsrc.Type())
 	}
 
-	assignNonZeroValueRecursive(va, vb)
+	assignNonZeroValueRecursive(vdst, vsrc)
 	return nil
 }
 
-func assignNonZeroValueRecursive(a, b reflect.Value) {
-	switch b.Kind() {
+func assignNonZeroValueRecursive(dst, src reflect.Value) {
+	switch src.Kind() {
+	case reflect.Ptr:
+		vsrc := src.Elem()
+		if !vsrc.IsValid() {
+			return
+		}
+		assignNonZeroValueRecursive(dst.Elem(), vsrc)
 	case reflect.Struct:
-		for i := 0; i < b.NumField(); i++ {
-			assignNonZeroValueRecursive(a.Field(i), b.Field(i))
+		for i := 0; i < src.NumField(); i++ {
+			assignNonZeroValueRecursive(dst.Field(i), src.Field(i))
 		}
 	default:
 		// Check if b is zero-value of its underlying type
-		bi := b.Interface()
-		isZero := reflect.DeepEqual(bi, reflect.Zero(reflect.TypeOf(bi)).Interface())
+		srci := src.Interface()
+		isZero := reflect.DeepEqual(srci, reflect.Zero(reflect.TypeOf(srci)).Interface())
 
 		// Only assign if b is not zero-value
-		if !isZero && a.CanSet() {
-			a.Set(b)
+		if !isZero && dst.CanSet() {
+			dst.Set(src)
 		}
 	}
 }

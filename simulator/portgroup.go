@@ -29,16 +29,25 @@ type DistributedVirtualPortgroup struct {
 
 func (s *DistributedVirtualPortgroup) ReconfigureDVPortgroupTask(req *types.ReconfigureDVPortgroup_Task) soap.HasFault {
 	task := CreateTask(s, "reconfigureDvPortgroup", func(t *Task) (types.AnyType, types.BaseMethodFault) {
-		s.Config.DefaultPortConfig = req.Spec.DefaultPortConfig
-		s.Config.NumPorts = req.Spec.NumPorts
-		s.Config.AutoExpand = req.Spec.AutoExpand
-		s.Config.Type = req.Spec.Type
-		s.Config.Description = req.Spec.Description
-		s.Config.DynamicData = req.Spec.DynamicData
-		s.Config.Name = req.Spec.Name
-		s.Config.Policy = req.Spec.Policy
-		s.Config.PortNameFormat = req.Spec.PortNameFormat
-		s.Config.VmVnicNetworkResourcePoolKey = req.Spec.VmVnicNetworkResourcePoolKey
+		apply := []struct {
+			src interface{}
+			dst interface{}
+		}{
+			{req.Spec.DefaultPortConfig, &s.Config.DefaultPortConfig},
+			{req.Spec.NumPorts, &s.Config.NumPorts},
+			{req.Spec.AutoExpand, &s.Config.AutoExpand},
+			{req.Spec.Type, &s.Config.Type},
+			{req.Spec.Description, &s.Config.Description},
+			{req.Spec.DynamicData, &s.Config.DynamicData},
+			{req.Spec.Name, &s.Config.Name},
+			{req.Spec.Policy, &s.Config.Policy},
+			{req.Spec.PortNameFormat, &s.Config.PortNameFormat},
+			{req.Spec.VmVnicNetworkResourcePoolKey, &s.Config.VmVnicNetworkResourcePoolKey},
+		}
+
+		for _, f := range apply {
+			assignNonZeroValue(f.dst, f.src)
+		}
 
 		return nil, nil
 	})

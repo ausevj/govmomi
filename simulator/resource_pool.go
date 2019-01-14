@@ -137,17 +137,9 @@ func updateResourceAllocation(kind string, src, dst *types.ResourceAllocationInf
 		}
 	}
 
-	if src.Reservation != nil {
-		dst.Reservation = src.Reservation
-	}
-
-	if src.Limit != nil {
-		dst.Limit = src.Limit
-	}
-
-	if src.Shares != nil {
-		dst.Shares = src.Shares
-	}
+	assignNonZeroValue(&dst.Reservation, src.Reservation)
+	assignNonZeroValue(&dst.Limit, src.Limit)
+	assignNonZeroValue(&dst.Shares, src.Shares)
 
 	return nil
 }
