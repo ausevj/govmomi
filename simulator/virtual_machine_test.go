@@ -506,6 +506,7 @@ func TestReconfigVm(t *testing.T) {
 			false, types.VirtualMachineConfigSpec{
 				LatencySensitivity: &types.LatencySensitivity{
 					Sensitivity: 1,
+					Level:       types.LatencySensitivitySensitivityLevel("high"),
 				},
 			},
 		},
@@ -576,6 +577,31 @@ func TestReconfigVm(t *testing.T) {
 	if vmm.Config.LatencySensitivity.Sensitivity != int32(1) {
 		t.Errorf("vmm.Config.LatencySensitivity.Sensitivity expected %d; got %d",
 			1, vmm.Config.LatencySensitivity.Sensitivity)
+	}
+	if vmm.Config.LatencySensitivity.Level != types.LatencySensitivitySensitivityLevel("high") {
+		t.Errorf("vmm.Config.LatencySensitivity.Level expected %s; got %s",
+			types.LatencySensitivitySensitivityLevel("high"), vmm.Config.LatencySensitivity.Level)
+	}
+
+	// Verify that updating one property does not change others
+	rtask, _ := vm.Reconfigure(ctx, types.VirtualMachineConfigSpec{
+		LatencySensitivity: &types.LatencySensitivity{
+			Sensitivity: 2,
+		},
+	})
+
+	err = rtask.Wait(ctx)
+	if err != nil {
+		t.Errorf("unexpected failure: %s", err)
+	}
+
+	if vmm.Config.LatencySensitivity.Sensitivity != int32(2) {
+		t.Errorf("vmm.Config.LatencySensitivity.Sensitivity expected %d; got %d",
+			2, vmm.Config.LatencySensitivity.Sensitivity)
+	}
+	if vmm.Config.LatencySensitivity.Level != types.LatencySensitivitySensitivityLevel("high") {
+		t.Errorf("vmm.Config.LatencySensitivity.Level expected %s; got %s",
+			types.LatencySensitivitySensitivityLevel("high"), vmm.Config.LatencySensitivity.Level)
 	}
 }
 

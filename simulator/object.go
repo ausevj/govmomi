@@ -40,8 +40,6 @@ func assignNonZeroValue(dst, src interface{}) error {
 	}
 
 	vdst = reflect.Indirect(vdst)
-	fmt.Printf("dst: %v - %v - %v\n", reflect.TypeOf(dst), dst, vdst)
-	fmt.Printf("src: %v - %v - %v\n", reflect.TypeOf(src), src, vsrc)
 	// Types must be equal for a to be set to b
 	if vdst.Type() != vsrc.Type() {
 		return fmt.Errorf("dst type: %v should be equal src type: %v", vdst.Type(), vsrc.Type())
@@ -57,6 +55,9 @@ func assignNonZeroValueRecursive(dst, src reflect.Value) {
 		vsrc := src.Elem()
 		if !vsrc.IsValid() {
 			return
+		}
+		if dst.IsNil() {
+			dst.Set(reflect.New(vsrc.Type()))
 		}
 		assignNonZeroValueRecursive(dst.Elem(), vsrc)
 	case reflect.Struct:

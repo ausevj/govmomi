@@ -187,7 +187,6 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) {
 		{spec.NpivOnNonRdmDisks, &vm.Config.NpivOnNonRdmDisks},
 		{spec.ChangeTrackingEnabled, &vm.Config.ChangeTrackingEnabled},
 		{spec.Flags, &vm.Config.Flags},
-		{spec.LatencySensitivity, &vm.Config.LatencySensitivity},
 		{spec.ManagedBy, &vm.Config.ManagedBy},
 		{spec.BootOptions, &vm.Config.BootOptions},
 		{spec.RepConfig, &vm.Config.RepConfig},
