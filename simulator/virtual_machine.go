@@ -149,8 +149,8 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) types.Base
 	}
 
 	apply := []struct {
-		src interface{}
-		dst interface{}
+		src string
+		dst *string
 	}{
 		{spec.AlternateGuestName, &vm.Config.AlternateGuestName},
 		{spec.Annotation, &vm.Config.Annotation},
@@ -176,6 +176,18 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) types.Base
 		{spec.Files.SnapshotDirectory, &vm.Config.Files.SnapshotDirectory},
 		{spec.Files.SuspendDirectory, &vm.Config.Files.SuspendDirectory},
 		{spec.Files.LogDirectory, &vm.Config.Files.LogDirectory},
+	}
+
+	for _, f := range apply {
+		if f.src != "" {
+			*f.dst = f.src
+		}
+	}
+
+	applyb := []struct {
+		src interface{}
+		dst interface{}
+	}{
 		{spec.NestedHVEnabled, &vm.Config.NestedHVEnabled},
 		{spec.CpuHotAddEnabled, &vm.Config.CpuHotAddEnabled},
 		{spec.CpuHotRemoveEnabled, &vm.Config.CpuHotRemoveEnabled},
@@ -204,8 +216,8 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) types.Base
 		{int32(spec.MemoryMB), &vm.Summary.Config.MemorySizeMB},
 	}
 
-	for _, f := range apply {
-		err := assignNonZeroValue(f.dst, f.src)
+	for _, f := range applyb {
+		err := assignNonEmpty(f.dst, f.src)
 		if err != nil {
 			return &types.InvalidArgument{InvalidProperty: ""}
 		}
@@ -774,7 +786,6 @@ func (vm *VirtualMachine) create(spec *types.VirtualMachineConfigSpec, register 
 		{vm.Config.Files.VmPathName, fmt.Sprintf("%s.nvram", vm.Name), nil},
 		{vm.Config.Files.LogDirectory, "vmware.log", &vm.log},
 	}
-
 	for _, file := range files {
 		f, err := vm.createFile(file.spec, file.name, register)
 		if err != nil {

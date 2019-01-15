@@ -19,16 +19,20 @@ package simulator
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// Assigns src to dst if src is non zero-value for its type.
-// Types must match for assignement (or src points to value of dst type).
-// If types are struct - recurses through fields and sets non zero-value src fields to dst.
-func assignNonZeroValue(dst, src interface{}) error {
+// Function takes 2 objects and tries to assign src to dst.
+// Assignement only works if object types are equal (or src points to value of dst type).
+// If object types are struct - loops through all src fields (including nested structs fields)
+// and assigns non-empty values to dst struct. Value is considered empty if:
+//   1) It is nil (only for Ptr types);
+//   2) It is set to its default value (only for struct fields with 'omitempty' tag).
+func assignNonEmpty(dst, src interface{}) error {
 	if src == nil {
 		return nil
 	}
@@ -49,16 +53,16 @@ func assignNonZeroValue(dst, src interface{}) error {
 		}
 	}
 
-	// Types must be equal for a to be set to b
+	// Types must be equal for dst to be set to src
 	if vdst.Type() != vsrc.Type() {
-		return fmt.Errorf("dst type: %v should be equal src type: %v", vdst.Type(), vsrc.Type())
+		return fmt.Errorf("dst type: %v must be equal to src type: %v", vdst.Type(), vsrc.Type())
 	}
 
-	assignNonZeroValueRecursive(vdst, vsrc)
+	assignNonEmptyRecursive(vdst, vsrc)
 	return nil
 }
 
-func assignNonZeroValueRecursive(dst, src reflect.Value) {
+func assignNonEmptyRecursive(dst, src reflect.Value) {
 	switch src.Kind() {
 	case reflect.Ptr:
 		vsrc := src.Elem()
@@ -66,22 +70,31 @@ func assignNonZeroValueRecursive(dst, src reflect.Value) {
 			return
 		}
 
+		// If field was not set - allocate a new object
 		if dst.IsNil() {
-			// If field was not set - allocate a new object
 			dst.Set(reflect.New(vsrc.Type()))
 		}
-		assignNonZeroValueRecursive(dst.Elem(), vsrc)
+		assignNonEmptyRecursive(dst.Elem(), vsrc)
 	case reflect.Struct:
 		for i := 0; i < src.NumField(); i++ {
-			assignNonZeroValueRecursive(dst.Field(i), src.Field(i))
+			srcf := src.Field(i)
+			srci := srcf.Interface()
+
+			// Check if src is zero-value of its underlying type
+			isZero := reflect.DeepEqual(srci, reflect.Zero(reflect.TypeOf(srci)).Interface())
+			// Check if src can be empty - struct field contains 'omitempty' tag
+			canBeEmpty := strings.Contains(string(reflect.TypeOf(src.Interface()).Field(i).Tag), "omitempty")
+
+			// If field is zero-value and has omitempty tag - it's empty and should not be used.
+			// Every other time field is empty on purpose and should be used.
+			if isZero && canBeEmpty {
+				continue
+			}
+
+			assignNonEmptyRecursive(dst.Field(i), srcf)
 		}
 	default:
-		// Check if b is zero-value of its underlying type
-		srci := src.Interface()
-		isZero := reflect.DeepEqual(srci, reflect.Zero(reflect.TypeOf(srci)).Interface())
-
-		// Only assign if b is not zero-value
-		if !isZero && dst.CanSet() {
+		if dst.CanSet() {
 			dst.Set(src)
 		}
 	}

@@ -147,7 +147,7 @@ func updateResourceAllocation(kind string, src, dst *types.ResourceAllocationInf
 	}
 
 	for _, f := range apply {
-		assignNonZeroValue(f.dst, f.src)
+		assignNonEmpty(f.dst, f.src)
 	}
 
 	return nil

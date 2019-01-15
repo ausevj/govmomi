@@ -477,7 +477,8 @@ func TestReconfigVm(t *testing.T) {
 		{
 			false, types.VirtualMachineConfigSpec{
 				Flags: &types.VirtualMachineFlagInfo{
-					UseToe: types.NewBool(true),
+					UseToe:      types.NewBool(true),
+					MonitorType: string(types.VirtualMachineFlagInfoMonitorTypeRelease),
 				},
 			},
 		},
@@ -506,14 +507,6 @@ func TestReconfigVm(t *testing.T) {
 			false, types.VirtualMachineConfigSpec{
 				MemoryAllocation: &types.ResourceAllocationInfo{
 					Reservation: types.NewInt64(100),
-				},
-			},
-		},
-		{
-			false, types.VirtualMachineConfigSpec{
-				LatencySensitivity: &types.LatencySensitivity{
-					Sensitivity: 1,
-					Level:       types.LatencySensitivitySensitivityLevel("high"),
 				},
 			},
 		},
@@ -568,6 +561,10 @@ func TestReconfigVm(t *testing.T) {
 	if *vmm.Config.Flags.UseToe != true {
 		t.Errorf("vm.Config.Flags.UseToe expected true; got false")
 	}
+	if vmm.Config.Flags.MonitorType != string(types.VirtualMachineFlagInfoMonitorTypeRelease) {
+		t.Errorf("vm.Config.Flags.MonitorType expected %s; got %s",
+			string(types.VirtualMachineFlagInfoMonitorTypeRelease), vmm.Config.Flags.MonitorType)
+	}
 	if vmm.Config.CpuAffinity.AffinitySet[0] != int32(1) {
 		t.Errorf("vm.Config.CpuAffinity.AffinitySet[0] expected %d; got %d",
 			1, vmm.Config.CpuAffinity.AffinitySet[0])
@@ -584,19 +581,11 @@ func TestReconfigVm(t *testing.T) {
 		t.Errorf("vm.Config.MemoryAllocation.Reservation expected %d; got %d",
 			100, *vmm.Config.MemoryAllocation.Reservation)
 	}
-	if vmm.Config.LatencySensitivity.Sensitivity != int32(1) {
-		t.Errorf("vmm.Config.LatencySensitivity.Sensitivity expected %d; got %d",
-			1, vmm.Config.LatencySensitivity.Sensitivity)
-	}
-	if vmm.Config.LatencySensitivity.Level != types.LatencySensitivitySensitivityLevel("high") {
-		t.Errorf("vmm.Config.LatencySensitivity.Level expected %s; got %s",
-			types.LatencySensitivitySensitivityLevel("high"), vmm.Config.LatencySensitivity.Level)
-	}
 
 	// Verify that updating one field does not change others
 	rtask, _ := vm.Reconfigure(ctx, types.VirtualMachineConfigSpec{
-		LatencySensitivity: &types.LatencySensitivity{
-			Sensitivity: 2,
+		Flags: &types.VirtualMachineFlagInfo{
+			UseToe: types.NewBool(false),
 		},
 	})
 
@@ -605,13 +594,12 @@ func TestReconfigVm(t *testing.T) {
 		t.Errorf("unexpected failure: %s", err)
 	}
 
-	if vmm.Config.LatencySensitivity.Sensitivity != int32(2) {
-		t.Errorf("vmm.Config.LatencySensitivity.Sensitivity expected %d; got %d",
-			2, vmm.Config.LatencySensitivity.Sensitivity)
+	if *vmm.Config.Flags.UseToe != false {
+		t.Errorf("vm.Config.Flags.UseToe expected false; got true")
 	}
-	if vmm.Config.LatencySensitivity.Level != types.LatencySensitivitySensitivityLevel("high") {
-		t.Errorf("vmm.Config.LatencySensitivity.Level expected %s; got %s",
-			types.LatencySensitivitySensitivityLevel("high"), vmm.Config.LatencySensitivity.Level)
+	if vmm.Config.Flags.MonitorType != string(types.VirtualMachineFlagInfoMonitorTypeRelease) {
+		t.Errorf("vm.Config.Flags.MonitorType expected %s; got %s",
+			string(types.VirtualMachineFlagInfoMonitorTypeRelease), vmm.Config.Flags.MonitorType)
 	}
 }
 
