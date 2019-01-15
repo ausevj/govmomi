@@ -56,7 +56,9 @@ func assignNonZeroValueRecursive(dst, src reflect.Value) {
 		if !vsrc.IsValid() {
 			return
 		}
+
 		if dst.IsNil() {
+			// If field was not set - allocate a new object
 			dst.Set(reflect.New(vsrc.Type()))
 		}
 		assignNonZeroValueRecursive(dst.Elem(), vsrc)
