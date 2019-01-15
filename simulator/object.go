@@ -25,7 +25,8 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-// Assigns src to dst (types must match for assignement) if src is non zero-value for its type.
+// Assigns src to dst if src is non zero-value for its type.
+// Types must match for assignement (or src points to value of dst type).
 // If types are struct - recurses through fields and sets non zero-value src fields to dst.
 func assignNonZeroValue(dst, src interface{}) error {
 	if src == nil {
@@ -36,10 +37,18 @@ func assignNonZeroValue(dst, src interface{}) error {
 	vsrc := reflect.ValueOf(src)
 
 	if vdst.Kind() != reflect.Ptr {
-		return fmt.Errorf("dst type must be Ptr")
+		return fmt.Errorf("dst must be Ptr")
 	}
 
 	vdst = reflect.Indirect(vdst)
+	// src might point to value of dst type
+	if vdst.Kind() != reflect.Ptr && vsrc.Kind() == reflect.Ptr {
+		vsrc = reflect.Indirect(vsrc)
+		if !vsrc.IsValid() {
+			return nil
+		}
+	}
+
 	// Types must be equal for a to be set to b
 	if vdst.Type() != vsrc.Type() {
 		return fmt.Errorf("dst type: %v should be equal src type: %v", vdst.Type(), vsrc.Type())

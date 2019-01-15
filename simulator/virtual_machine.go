@@ -143,7 +143,7 @@ func (vm *VirtualMachine) event() types.VmEvent {
 	}
 }
 
-func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) {
+func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) types.BaseMethodFault {
 	if spec.Files == nil {
 		spec.Files = new(types.VirtualMachineFileInfo)
 	}
@@ -205,7 +205,10 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) {
 	}
 
 	for _, f := range apply {
-		assignNonZeroValue(f.dst, f.src)
+		err := assignNonZeroValue(f.dst, f.src)
+		if err != nil {
+			return &types.InvalidArgument{InvalidProperty: ""}
+		}
 	}
 
 	var changes []types.PropertyChange
@@ -237,6 +240,8 @@ func (vm *VirtualMachine) apply(spec *types.VirtualMachineConfigSpec) {
 	}
 
 	vm.Config.Modified = time.Now()
+
+	return nil
 }
 
 func validateGuestID(id string) types.BaseMethodFault {
@@ -250,7 +255,9 @@ func validateGuestID(id string) types.BaseMethodFault {
 }
 
 func (vm *VirtualMachine) configure(spec *types.VirtualMachineConfigSpec) types.BaseMethodFault {
-	vm.apply(spec)
+	if err := vm.apply(spec); err != nil {
+		return err
+	}
 
 	if spec.MemoryAllocation != nil {
 		if err := updateResourceAllocation("memory", spec.MemoryAllocation, vm.Config.MemoryAllocation); err != nil {

@@ -137,9 +137,18 @@ func updateResourceAllocation(kind string, src, dst *types.ResourceAllocationInf
 		}
 	}
 
-	assignNonZeroValue(&dst.Reservation, src.Reservation)
-	assignNonZeroValue(&dst.Limit, src.Limit)
-	assignNonZeroValue(&dst.Shares, src.Shares)
+	apply := []struct {
+		src interface{}
+		dst interface{}
+	}{
+		{src.Reservation, &dst.Reservation},
+		{src.Limit, &dst.Limit},
+		{src.Shares, &dst.Shares},
+	}
+
+	for _, f := range apply {
+		assignNonZeroValue(f.dst, f.src)
+	}
 
 	return nil
 }

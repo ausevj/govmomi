@@ -476,6 +476,13 @@ func TestReconfigVm(t *testing.T) {
 		},
 		{
 			false, types.VirtualMachineConfigSpec{
+				Flags: &types.VirtualMachineFlagInfo{
+					UseToe: types.NewBool(true),
+				},
+			},
+		},
+		{
+			false, types.VirtualMachineConfigSpec{
 				CpuAffinity: &types.VirtualMachineAffinityInfo{
 					AffinitySet: []int32{1},
 				},
@@ -558,6 +565,9 @@ func TestReconfigVm(t *testing.T) {
 	if *vmm.Config.ConsolePreferences.PowerOnWhenOpened != true {
 		t.Errorf("vm.Config.ConsolePreferences.PowerOnWhenOpened expected true; got false")
 	}
+	if *vmm.Config.Flags.UseToe != true {
+		t.Errorf("vm.Config.Flags.UseToe expected true; got false")
+	}
 	if vmm.Config.CpuAffinity.AffinitySet[0] != int32(1) {
 		t.Errorf("vm.Config.CpuAffinity.AffinitySet[0] expected %d; got %d",
 			1, vmm.Config.CpuAffinity.AffinitySet[0])
@@ -583,7 +593,7 @@ func TestReconfigVm(t *testing.T) {
 			types.LatencySensitivitySensitivityLevel("high"), vmm.Config.LatencySensitivity.Level)
 	}
 
-	// Verify that updating one property does not change others
+	// Verify that updating one field does not change others
 	rtask, _ := vm.Reconfigure(ctx, types.VirtualMachineConfigSpec{
 		LatencySensitivity: &types.LatencySensitivity{
 			Sensitivity: 2,

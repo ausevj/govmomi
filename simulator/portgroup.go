@@ -46,7 +46,10 @@ func (s *DistributedVirtualPortgroup) ReconfigureDVPortgroupTask(req *types.Reco
 		}
 
 		for _, f := range apply {
-			assignNonZeroValue(f.dst, f.src)
+			err := assignNonZeroValue(f.dst, f.src)
+			if err != nil {
+				return nil, &types.InvalidArgument{InvalidProperty: ""}
+			}
 		}
 
 		return nil, nil
